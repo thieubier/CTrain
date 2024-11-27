@@ -3,6 +3,8 @@
 
 #include <SFML/Graphics.hpp>
 #include "../rail/Rail.hpp"
+#include "../rail/Switch.hpp"
+
 
 class Rail;
 

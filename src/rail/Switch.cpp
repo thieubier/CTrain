@@ -23,19 +23,23 @@ Rail* Switch::getNextRail() {
         return nullptr;
     }
 
-    // Si isRight est vrai, retourner le rail correspondant à la connexion de droite
-    if (isRight) {
-        return connections.size() > 1 ? connections[1].rail : nullptr;
+    Rail* nextRail = isRight ? (connections.size() > 1 ? connections[1].rail : nullptr) : connections[0].rail;
+
+    if (nextRail) {
+        std::cout << "Switch '" << name << "' retourne le rail : " << nextRail->toString()
+                  << " (état : " << (isRight ? "droite" : "gauche") << ")" << std::endl;
     } else {
-        // Sinon, retourner la connexion de gauche
-        return connections[0].rail;
+        std::cerr << "Switch '" << name << "' n'a pas de rail correspondant pour l'état : "
+                  << (isRight ? "droite" : "gauche") << std::endl;
     }
+    return nextRail;
 }
 
 // Ajouter une connexion au switch
 void Switch::addConnection(const sf::Vector2f& point, Rail* rail) {
     connections.push_back({point, rail});
-    std::cout << "Connexion ajoutée au switch '" << name << "' avec le rail '" << rail->toString() << "'." << std::endl;
+    std::cout << "Connexion ajoutée au switch '" << name << "' avec le rail '" << rail->toString()
+              << "' au point : " << point.x << ", " << point.y << std::endl;
 }
 
 // Dessiner le switch
