@@ -3,24 +3,22 @@
 #include <iostream>
 #include <stdexcept>
 
+// Constructeur
 Train::Train(Rail* startRail, bool direction, float speed)
     : currentRail(startRail), movingTowardsEnd(direction), speed(speed) {
     position = startRail->start;
 
     if (!trainTexture.loadFromFile("src/files/assets/Trains etc/Train.png")) {
-        throw std::runtime_error("Erreur : Impossible de charger 'train.jpeg'");
+        throw std::runtime_error("Erreur : Impossible de charger 'train.png'");
     }
-    trainSprite.setColor(sf::Color(255, 255, 255, 255));
     trainSprite.setTexture(trainTexture);
     trainSprite.setScale(0.1f, 0.1f);
     trainSprite.setPosition(position);
 }
 
+// Déplace le train le long des rails
 void Train::move(float deltaTime) {
-    if (!currentRail) {
-        std::cout << "Erreur : Aucun rail courant. Le train ne peut pas bouger." << std::endl;
-        return;
-    }
+    if (!currentRail) return;
 
     sf::Vector2f target = movingTowardsEnd ? currentRail->end : currentRail->start;
     sf::Vector2f direction = target - position;
@@ -28,39 +26,20 @@ void Train::move(float deltaTime) {
 
     if (distance < speed * deltaTime) {
         position = target;
-
-        if (movingTowardsEnd && currentRail->nextRail) {
-            currentRail = currentRail->nextRail;
-        } else if (!movingTowardsEnd && currentRail->previousRail) {
-            currentRail = currentRail->previousRail;
-        } else if (auto* switchRail = dynamic_cast<Switch*>(currentRail)) {
-            currentRail = switchRail->getActiveRail();
-        } else {
-            std::cout << "Aucun rail suivant ou précédent disponible." << std::endl;
-            currentRail = nullptr;
+        currentRail = currentRail->getConnectedRail(target);
+        if (!currentRail) {
+            std::cout << "Aucune connexion trouvée. Train arrêté." << std::endl;
+            return;
         }
-
-        // Met à jour la direction du train
-        const float epsilon = 0.01f;
-        movingTowardsEnd = (std::abs(currentRail->start.x - position.x) < epsilon &&
-                            std::abs(currentRail->start.y - position.y) < epsilon);
-    } else if (distance > 0) {
+        movingTowardsEnd = (currentRail->start == target);
+    } else {
         direction /= distance;
         position += direction * speed * deltaTime;
     }
-
-    trainSprite.setPosition(position);
+    trainSprite.setPosition(position - sf::Vector2f(10.f, 10.f));
 }
 
-void Train::switchRail(Switch* railSwitch) {
-    if (!currentRail || !railSwitch) return;
-
-    currentRail = currentRail->nextRail;
-}
-
-
+// Dessine le train sur la fenêtre SFML
 void Train::draw(sf::RenderWindow& window) {
-    sf::Vector2f adjustedPosition(position.x - 10.0f, position.y - 10.0f);
-    trainSprite.setPosition(sf::Vector2f(adjustedPosition.x, adjustedPosition.y));
     window.draw(trainSprite);
 }

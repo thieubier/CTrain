@@ -2,13 +2,13 @@
 #include "rail/Rail.hpp"
 #include "rail/Switch.hpp"
 #include "train/Train.hpp"
-#include <iostream>
-
 #include "scenes/Cloud.hpp"
+#include "scenes/Cursor.hpp"
+#include "scenes/Legend.hpp"
+#include <iostream>
 
 int main() {
     sf::ContextSettings settings;
-    settings.antialiasingLevel = 8; // Pour des graphismes plus fluides
     sf::RenderWindow window(sf::VideoMode(800, 600), "Train Simulation", sf::Style::Default, settings);
 
     sf::Texture cloudTexture;
@@ -16,6 +16,10 @@ int main() {
         std::cerr << "Erreur : Impossible de charger 'cloud.png'" << std::endl;
         return -1;
     }
+
+    Legend legend({10.0f, 10.0f});
+    legend.addEntry("Gauche", sf::Color(50, 205, 50)); // Vert pour gauche
+    legend.addEntry("Droite", sf::Color(220, 20, 60)); // Rouge pour droite
 
     sf::Texture backgroundTexture;
     if (!backgroundTexture.loadFromFile("src/files/background_detailed.jpeg")) {
@@ -34,6 +38,7 @@ int main() {
         Cloud(cloudTexture, {1200, 150})
     };
 
+    // Initialisation des rails
     Rail rail1("rail1", {100.0, 300}, {300, 300});
     Rail rail2("rail2", {300, 300}, {500, 200});
     Rail rail3("rail3", {300, 300}, {500, 400});
@@ -43,44 +48,35 @@ int main() {
     Rail rail7("rail7", {700, 200}, {700, 100});
     Rail rail8("rail8", {700, 400}, {700, 500});
 
-    Switch railSwitch1("railSwitch1",{300, 300});
-    Switch railSwitch2("railSwitch2",{700, 200});
-    Switch railSwitch3("railSwitch3",{700, 400});
+    // Initialisation des switches
+    Switch railSwitch1("railSwitch1", {300, 300});
+    Switch railSwitch2("railSwitch2", {700, 200});
+    Switch railSwitch3("railSwitch3", {700, 400});
 
-    // Switch 1 : Rail 1 à Rail 2 ou Rail 3
-    railSwitch1.addConnection(&rail2);
-    railSwitch1.addConnection(&rail3);
-    rail1.connectToNext(&railSwitch1);
+    // Configuration des connexions des switches
+    railSwitch1.addConnection({300, 300}, &rail2);
+    railSwitch1.addConnection({300, 300}, &rail3);
 
-    // Rail 2 : Connecté à Rail 4
-    rail2.connectToNext(&rail4);
-    rail2.connectToPrevious(&railSwitch1);
+    railSwitch2.addConnection({700, 200}, &rail7);
+    railSwitch2.addConnection({700, 200}, &rail6);
 
-    // Rail 3 : Connecté à Rail 5
-    rail3.connectToNext(&rail5);
-    rail3.connectToPrevious(&railSwitch1);
+    railSwitch3.addConnection({700, 400}, &rail5);
+    railSwitch3.addConnection({700, 400}, &rail6);
 
-    // Rail 4 : Connecté à Switch 2
-    rail4.connectToNext(&railSwitch2);
-    rail4.connectToPrevious(&rail2);
-
-    // Rail 5 : Connecté à Switch 3
-    rail5.connectToNext(&railSwitch3);
-    rail5.connectToPrevious(&rail3);
-
-    // Rail 6 : Connecté entre Switch 2 et Switch 3
-    rail6.connectToNext(&railSwitch3);
-    rail6.connectToPrevious(&railSwitch2);
-
-    // Switch 2 : Rail 4 à Rail 6
-    railSwitch2.addConnection(&rail4);
-    railSwitch2.addConnection(&rail6);
-
-    // Switch 3 : Rail 5 à Rail 6
-    railSwitch3.addConnection(&rail5);
-    railSwitch3.addConnection(&rail6);
+    // Configuration des connexions entre les rails
+    rail1.connect({300, 300}, &railSwitch1);
+    rail2.connect({500, 200}, &rail4);
+    rail3.connect({500, 400}, &rail5);
+    rail4.connect({700, 200}, &railSwitch2);
+    rail5.connect({700, 400}, &railSwitch3);
 
     Train train(&rail1, true, 100.0f);
+
+    // Gestion des switches et du curseur
+    std::vector<Switch*> switches = {&railSwitch1, &railSwitch2, &railSwitch3};
+    Cursor cursor;
+    int currentSwitchIndex = 0;
+    cursor.setPosition(switches[currentSwitchIndex]->start); // Position initiale du curseur
 
     sf::Clock clock;
 
@@ -90,14 +86,14 @@ int main() {
             if (event.type == sf::Event::Closed)
                 window.close();
             if (event.type == sf::Event::KeyPressed) {
+                if (event.key.code == sf::Keyboard::Tab) {
+                    currentSwitchIndex = (currentSwitchIndex + 1) % switches.size();
+                    cursor.setPosition(switches[currentSwitchIndex]->start);
+                }
+
                 if (event.key.code == sf::Keyboard::Space) {
-                    railSwitch1.activateNextRail();
-                }
-                if (event.key.code == sf::Keyboard::S) {
-                    railSwitch2.activateNextRail();
-                }
-                if (event.key.code == sf::Keyboard::D) {
-                    railSwitch3.activateNextRail();
+                    std::cout << "Activation du switch : " << switches[currentSwitchIndex]->toString() << std::endl;
+                    switches[currentSwitchIndex]->setState(!switches[currentSwitchIndex]->getState());
                 }
             }
         }
@@ -112,10 +108,8 @@ int main() {
         // Déplacement du train
         train.move(deltaTime);
 
-        // Rendu (dessin)
+        // Rendu
         window.clear();
-
-        // Dessiner le fond
         window.draw(backgroundSprite);
 
         // Dessiner les rails
@@ -133,8 +127,14 @@ int main() {
         railSwitch2.draw(window);
         railSwitch3.draw(window);
 
+        // Dessiner le curseur
+        cursor.draw(window);
+
         // Dessiner le train
         train.draw(window);
+
+        // Dessiner la légende
+        legend.draw(window);
 
         // Dessiner les nuages
         for (const auto& cloud : clouds) {
@@ -143,5 +143,6 @@ int main() {
 
         window.display();
     }
+
     return 0;
 }

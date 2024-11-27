@@ -1,37 +1,36 @@
 #include "Rail.hpp"
-
+#include <SFML/Graphics.hpp>
 #include <iostream>
 
-Rail::Rail(const std::string name, const sf::Vector2f& start, const sf::Vector2f& end)
-    : name(name), start(start), end(end), position(start), nextRail(nullptr), previousRail(nullptr) {}
+// Constructeur
+Rail::Rail(const std::string& name, const sf::Vector2f& start, const sf::Vector2f& end)
+    : name(name), start(start), end(end) {}
 
-void Rail::connectToNext(Rail* rail) {
-    nextRail = rail;
+// Renvoie le nom du rail
+const std::string& Rail::toString() const {
+    return name;
 }
 
-void Rail::connectToPrevious(Rail* rail) {
-     previousRail = rail;
+// Ajoute une connexion entre un point de ce rail et un autre rail
+void Rail::connect(const sf::Vector2f& point, Rail* rail) {
+    connections.push_back({point, rail});
 }
 
-std::string Rail::toString()
-{
-    return name + " " + std::to_string(start.x) + " " + std::to_string(end.x)
-    + " " + std::to_string(start.y) + " " + std::to_string(end.y);
+// Renvoie le rail connecté à un point donné
+Rail* Rail::getConnectedRail(const sf::Vector2f& point) {
+    for (const auto& connection : connections) {
+        if (connection.point == point) {
+            return connection.rail;
+        }
+    }
+    return nullptr; // Aucun rail connecté trouvé
 }
 
+// Dessine le rail sur la fenêtre SFML
 void Rail::draw(sf::RenderWindow& window) const {
-    // Calcul de la direction et de la longueur
-    sf::Vector2f direction = end - start;
-    float length = std::sqrt(direction.x * direction.x + direction.y * direction.y);
-    float angle = std::atan2(direction.y, direction.x) * 180 / 3.14159;
-
-    // Rectangle représentant le rail
-    sf::RectangleShape railShape(sf::Vector2f(length, 6.0f)); // Largeur de 6px
-    railShape.setFillColor(sf::Color(169, 169, 169)); // Gris foncé pour les rails
-    railShape.setOrigin(0, 3.0f); // Centré sur l'axe vertical
-    railShape.setPosition(start);
-    railShape.setRotation(angle);
-
-    window.draw(railShape);
+    sf::Vertex line[] = {
+        sf::Vertex(start, sf::Color::White),
+        sf::Vertex(end, sf::Color::White)
+    };
+    window.draw(line, 2, sf::Lines);
 }
-
