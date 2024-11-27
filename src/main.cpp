@@ -7,6 +7,9 @@
 #include "scenes/Legend.hpp"
 #include <iostream>
 
+#include "scenes/Crate.hpp"
+#include "settings/Globals.hpp"
+
 int main() {
     sf::ContextSettings settings;
     sf::RenderWindow window(sf::VideoMode(800, 600), "Train Simulation", sf::Style::Default, settings);
@@ -16,6 +19,9 @@ int main() {
         std::cerr << "Erreur : Impossible de charger 'cloud.png'" << std::endl;
         return -1;
     }
+
+    Crate crate1({500, 100}, "src/files/assets/Crates etc/CrateSmall.png");
+    Crate crate2({600, 400}, "src/files/assets/Crates etc/CrateSmall.png");
 
     Legend legend({10.0f, 10.0f});
     legend.addEntry("Gauche", sf::Color(50, 205, 50)); // Vert pour gauche
@@ -32,36 +38,32 @@ int main() {
         static_cast<float>(window.getSize().y) / backgroundTexture.getSize().y
     );
 
+    // Bouton de réinitialisation
+    sf::RectangleShape resetButton(sf::Vector2f(150, 40));
+    resetButton.setPosition(window.getSize().x - 160, 10);
+    resetButton.setFillColor(sf::Color(100, 100, 100));
+    resetButton.setOutlineColor(sf::Color::Black);
+    resetButton.setOutlineThickness(2);
+
+    sf::Font font;
+    if (!font.loadFromFile("src/files/Roboto-Regular.ttf")) {
+        std::cerr << "Erreur : Impossible de charger la police 'Roboto-Regular.ttf'" << std::endl;
+        return -1;
+    }
+
+    sf::Text resetButtonText("Restart", font, 20);
+    resetButtonText.setPosition(resetButton.getPosition().x + 20, resetButton.getPosition().y + 5);
+    resetButtonText.setFillColor(sf::Color::White);
+
     std::vector clouds = {
         Cloud(cloudTexture, {800, 100}),
         Cloud(cloudTexture, {1000, 200}),
         Cloud(cloudTexture, {1200, 150})
     };
 
-    // Initialisation des rails
-    Rail rail1("rail1", {100.0, 300}, {300, 300});
-    Rail rail2("rail2", {300, 300}, {500, 200});
-    Rail rail3("rail3", {300, 300}, {500, 400});
-    Rail rail4("rail4", {500, 200}, {700, 200});
-    Rail rail5("rail5", {500, 400}, {700, 400});
-    Rail rail6("rail6", {700, 200}, {700, 400});
-    Rail rail7("rail7", {700, 200}, {700, 100});
-    Rail rail8("rail8", {700, 400}, {700, 500});
-
-    // Initialisation des switches
     Switch railSwitch1("railSwitch1", {300, 300});
     Switch railSwitch2("railSwitch2", {700, 200});
     Switch railSwitch3("railSwitch3", {700, 400});
-
-    // Configuration des connexions des switches
-    railSwitch1.addConnection({300, 300}, &rail2);
-    railSwitch1.addConnection({300, 300}, &rail3);
-
-    railSwitch2.addConnection({700, 200}, &rail7);
-    railSwitch2.addConnection({700, 200}, &rail6);
-
-    railSwitch3.addConnection({700, 400}, &rail5);
-    railSwitch3.addConnection({700, 400}, &rail6);
 
     // Configuration des connexions entre les rails
     rail1.connect({300, 300}, &railSwitch1);
@@ -69,6 +71,9 @@ int main() {
     rail3.connect({500, 400}, &rail5);
     rail4.connect({700, 200}, &railSwitch2);
     rail5.connect({700, 400}, &railSwitch3);
+    rail7.connect({700, 100}, &rail9);
+    rail9.connect({300, 100}, &rail10);
+    rail10.connect({100, 300}, &rail1);
 
     Train train(&rail1, true, 100.0f);
 
@@ -79,6 +84,18 @@ int main() {
     cursor.setPosition(switches[currentSwitchIndex]->start); // Position initiale du curseur
 
     sf::Clock clock;
+
+    auto resetSimulation = [&]() {
+        std::cout << "Réinitialisation de la simulation." << std::endl;
+
+        // Réinitialiser le train avec recharge de la texture
+        train = Train(&rail1, true, 100.0f);
+
+        // Réinitialiser les switches
+        for (auto* sw : switches) {
+            sw->setState(false); // Par défaut, tous les switches à gauche
+        }
+    };
 
     while (window.isOpen()) {
         sf::Event event;
@@ -94,6 +111,14 @@ int main() {
                 if (event.key.code == sf::Keyboard::Space) {
                     std::cout << "Activation du switch : " << switches[currentSwitchIndex]->toString() << std::endl;
                     switches[currentSwitchIndex]->setState(!switches[currentSwitchIndex]->getState());
+                }
+            }
+            if (event.type == sf::Event::MouseButtonPressed) {
+                if (event.mouseButton.button == sf::Mouse::Left) {
+                    sf::Vector2f mousePos(event.mouseButton.x, event.mouseButton.y);
+                    if (resetButton.getGlobalBounds().contains(mousePos)) {
+                        resetSimulation();
+                    }
                 }
             }
         }
@@ -121,6 +146,8 @@ int main() {
         rail6.draw(window);
         rail7.draw(window);
         rail8.draw(window);
+        rail9.draw(window);
+        rail10.draw(window);
 
         // Dessiner les switches
         railSwitch1.draw(window);
@@ -129,6 +156,8 @@ int main() {
 
         // Dessiner le curseur
         cursor.draw(window);
+        crate1.draw(window);
+        crate2.draw(window);
 
         // Dessiner le train
         train.draw(window);

@@ -26,6 +26,8 @@ add_executable(TrainSimulation
         src/scenes/Cloud.cpp
         src/scenes/Cursor.cpp
         src/scenes/Legend.cpp
+        src/settings/Globals.cpp
+        src/scenes/Crate.cpp
 )
 
 target_link_libraries(TrainSimulation PRIVATE sfml-graphics)

@@ -5,7 +5,6 @@
 #include "../rail/Rail.hpp"
 #include "../rail/Switch.hpp"
 
-
 class Rail;
 
 class Train {
@@ -16,13 +15,15 @@ public:
     void draw(sf::RenderWindow& window);    // Dessiner le train
 
 private:
-    Rail* currentRail;
-    sf::Vector2f position;
-    bool movingTowardsEnd;
-    float speed;
+    Rail* currentRail;                      // Rail actuel
+    Rail* previousRail;                     // Rail précédent
+    sf::Vector2f position;                  // Position actuelle du train
+    bool movingTowardsEnd;                  // Direction du mouvement
+    float speed;                            // Vitesse du train
 
-    sf::Texture trainTexture;
-    sf::Sprite trainSprite;
+    sf::Texture trainTexture;               // Texture du train
+    sf::Sprite trainSprite;                 // Sprite du train
+    void loadTexture();                     // Méthode pour charger la texture
 };
 
 #endif

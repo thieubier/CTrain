@@ -7,11 +7,7 @@
 Train::Train(Rail* startRail, bool direction, float speed)
     : currentRail(startRail), movingTowardsEnd(direction), speed(speed) {
     position = startRail->start;
-
-    if (!trainTexture.loadFromFile("src/files/assets/Trains etc/Train.png")) {
-        throw std::runtime_error("Erreur : Impossible de charger 'train.png'");
-    }
-    trainSprite.setTexture(trainTexture);
+    loadTexture(); // Charger la texture
     trainSprite.setScale(0.1f, 0.1f);
     trainSprite.setPosition(position);
 }
@@ -19,7 +15,7 @@ Train::Train(Rail* startRail, bool direction, float speed)
 // Déplace le train le long des rails
 void Train::move(float deltaTime) {
     if (!currentRail) {
-        std::cout << "Train bloqué : Aucun rail courant.\n";
+        std::cout << "Train bloqué : Aucun rail courant." << std::endl;
         return;
     }
 
@@ -29,18 +25,24 @@ void Train::move(float deltaTime) {
 
     if (distance < speed * deltaTime) {
         position = target;
-        std::cout << "Train atteint le point : " << target.x << ", " << target.y << "\n";
+        std::cout << "Train atteint le point : " << target.x << ", " << target.y << std::endl;
 
-        // Vérifie si le rail actuel est un switch
         if (auto* switchRail = dynamic_cast<Switch*>(currentRail)) {
-            std::cout << "Le rail actuel est un switch : " << switchRail->toString() << "\n";
-            currentRail = switchRail->getNextRail();
+            std::cout << "Le rail actuel est un switch : " << switchRail->toString() << std::endl;
+            Rail* nextRail = switchRail->getNextRail(previousRail);
+            if (!nextRail) {
+                std::cout << "Aucune connexion trouvée depuis le switch." << std::endl;
+                return;
+            }
+            previousRail = currentRail;
+            currentRail = nextRail;
         } else {
+            previousRail = currentRail;
             currentRail = currentRail->getConnectedRail(target);
         }
 
         if (!currentRail) {
-            std::cout << "Aucune connexion trouvée. Train arrêté." << std::endl;
+            std::cout << "Aucune connexion trouvée depuis le rail courant." << std::endl;
             return;
         }
 
@@ -48,9 +50,20 @@ void Train::move(float deltaTime) {
     } else {
         direction /= distance;
         position += direction * speed * deltaTime;
+        if (direction.x < 0) {
+            trainSprite.setScale(-0.1f, 0.1f); // Inverser l'image horizontalement
+        } else {
+            trainSprite.setScale(0.1f, 0.1f); // Image normale
+        }
     }
-
     trainSprite.setPosition(position - sf::Vector2f(10.f, 10.f));
+}
+
+void Train::loadTexture() {
+    if (!trainTexture.loadFromFile("src/files/assets/Trains etc/Train.png")) {
+        throw std::runtime_error("Erreur : Impossible de charger 'Train.png'");
+    }
+    trainSprite.setTexture(trainTexture);
 }
 
 // Dessine le train sur la fenêtre SFML
